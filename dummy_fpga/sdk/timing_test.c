@@ -44,11 +44,17 @@
  *   uartlite    Configurable only in HW design
  *   ps7_uart    115200 (configured by bootrom/bsp)
  */
-
+#include <unistd.h>
 #include <stdio.h>
 #include "platform.h"
 #include "xparameters.h"
 #include "xil_io.h"
+#include "xil_exception.h"
+#include "xscugic.h"
+
+#define EVENT_IRQ 61
+#define ERROR_IRQ 62
+
 
 /*
 	3'h0   : reg_data_out <= reset_reg;
@@ -66,10 +72,106 @@
 #define ONE_MS_COUNTS 1e-3*CLK_FREQ
 
 #define NUM_CH 16
+#define MAX_NUM_CH 32
 
 #define CH_SPACING ONE_MS_COUNTS/100
 
-#define NUM_TESTS 100
+#define NUM_TESTS 10
+#define FAIL_CHANNEL 8
+
+volatile int eventCounts[MAX_NUM_CH];
+volatile int triggerError[MAX_NUM_CH];
+volatile int errorDetected;
+
+void clearChannel(int ch);
+
+XScuGic InterruptController; /* Instance of the Interrupt Controller */
+static XScuGic_Config *GicConfig;/* The configuration parameters of the controller */
+void event_irq_Handler(void *baseaddr_p){
+	int i;
+	u32 event_mask = Xil_In32(XPAR_TIMETESTIP_0_0+4*6);
+	for(i=0;i<MAX_NUM_CH;i++)
+	{
+		if(event_mask&(1<<i))
+		{
+			if(!triggerError[i])
+			{
+				clearChannel(i);
+			}
+			eventCounts[i]++;
+		}
+	}
+}
+
+void error_irq_Handler(void *baseaddr_p){
+	errorDetected = 1;
+}
+
+
+
+int ScuGicInterrupt_Init()
+{
+ int Status;
+ /*
+  * Initialize the interrupt controller driver so that it is ready to
+  * use.
+  * */
+ Xil_ExceptionInit();
+ GicConfig = XScuGic_LookupConfig(XPAR_PS7_SCUGIC_0_DEVICE_ID);
+ if (NULL == GicConfig) {
+  return XST_FAILURE;
+ }
+ Status = XScuGic_CfgInitialize(&InterruptController, GicConfig,
+   GicConfig->CpuBaseAddress);
+ if (Status != XST_SUCCESS) {
+  return XST_FAILURE;
+ }
+ /*
+  * Setup the Interrupt System
+  * */
+ /*
+  * Connect the interrupt controller interrupt handler to the hardware
+  * interrupt handling logic in the ARM processor.
+  */
+ Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_IRQ_INT,
+   (Xil_ExceptionHandler) XScuGic_InterruptHandler,
+   (void *) &InterruptController);
+
+ /*
+  * Connect a device driver handler that will be called when an
+  * interrupt for the device occurs, the device driver handler performs
+  * the specific interrupt processing for the device
+  */
+ Status = XScuGic_Connect(&InterruptController,EVENT_IRQ,
+   (Xil_ExceptionHandler)event_irq_Handler,
+   (void *)&InterruptController);
+
+ XScuGic_Enable(&InterruptController, EVENT_IRQ);
+
+ Status = XScuGic_Connect(&InterruptController,ERROR_IRQ,
+   (Xil_ExceptionHandler)error_irq_Handler,
+   (void *)&InterruptController);
+
+ XScuGic_Enable(&InterruptController, ERROR_IRQ);
+
+ /*
+  * Enable interrupts in the ARM
+  */
+ Xil_ExceptionEnable();
+ //Only used for edge sensitive Interrupts
+ XScuGic_SetPriorityTriggerType(&InterruptController, EVENT_IRQ,
+      0x0, 3);
+ XScuGic_SetPriorityTriggerType(&InterruptController, ERROR_IRQ,
+       0x0, 3);
+
+
+ if (Status != XST_SUCCESS) {
+  return XST_FAILURE;
+ }
+ return XST_SUCCESS;
+}
+
+
 
 
 void initTest()
@@ -91,61 +193,75 @@ void resetTest()
 
 void clearChannel(int ch)
 {
-	Xil_Out32(XPAR_TIMETESTIP_0_0+4*4,ch);
-	Xil_Out32(XPAR_TIMETESTIP_0_0+4*5,1);
-	Xil_Out32(XPAR_TIMETESTIP_0_0+4*5,0);
+	Xil_Out32(XPAR_TIMETESTIP_0_0+4*5,ch);
+	Xil_Out32(XPAR_TIMETESTIP_0_0+4*4,1);
+	Xil_Out32(XPAR_TIMETESTIP_0_0+4*4,0);
 }
 
 int main()
 {
+	int i=0;
 	int testCount=0;
-	int i;
+	int xstatus;
 
     init_platform();
 
     printf("Hello World\n\r");
 
-
-    resetTest();
-
-
-
-    while(testCount<NUM_TESTS)
+    for(i=0;i<MAX_NUM_CH;i++)
     {
-    	u32 event_mask = Xil_In32(XPAR_TIMETESTIP_0_0+4*6);
-    	u32 error_mask = Xil_In32(XPAR_TIMETESTIP_0_0+4*7);
-
-    	if(event_mask)
-    	{
-    		for(i=0;i<32;i++)
-    		{
-    			if(event_mask&(1<<i))
-    			{
-    				clearChannel(i);
-    			}
-    		}
-    		testCount++;
-    	}
-
-    	if(error_mask)
-    	{
-    		 printf("Unexpected Error\n\r");
-    		 return 0;
-    	}
-
+    	eventCounts[i] = 0;
+    	triggerError[i] = 0;
     }
 
-    printf("Waiting for error\n\r");
+    errorDetected = 0;
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//SCUGIC interrupt controller Intialization
+	//Registration of the Timer ISR
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    xstatus = ScuGicInterrupt_Init();
+	if(XST_SUCCESS != xstatus)
+	{
+		print(" :( SCUGIC INIT FAILED \n\r");
+	}
+
+	resetTest();
 
     while(1)
     {
-		u32 error_mask = Xil_In32(XPAR_TIMETESTIP_0_0+4*7);
-		if(error_mask)
+    	printf("Counts:");
+    	 for(i=0;i<MAX_NUM_CH;i++)
 		{
-			 break;
+    		 printf("%d,",eventCounts[i]);
 		}
+    	 printf("\n\r");
+
+
+
+		if(errorDetected)
+		{
+			u32 error_mask = Xil_In32(XPAR_TIMETESTIP_0_0+4*7);
+			if(triggerError[FAIL_CHANNEL])
+			{
+				printf("Error: %X\n\r",(unsigned int)error_mask);
+				break;
+			}
+			printf("Unexpected Error: %X\n\r",(unsigned int)error_mask);
+			return 0;
+		}
+
+		if(testCount>=NUM_TESTS)
+		{
+			 printf("trigger error:%d\r\n",FAIL_CHANNEL);
+			triggerError[FAIL_CHANNEL]=1;
+		}
+
+    	sleep(1);
+    	testCount++;
     }
-    printf("Test done\n\r");
+    printf("Test Done\n\r");
 
     cleanup_platform();
     return 0;
