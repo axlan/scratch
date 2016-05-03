@@ -1,84 +1,60 @@
+`pragma protect begin_protected
+`pragma protect version = 1
+`pragma protect encrypt_agent = "XILINX"
+`pragma protect encrypt_agent_info = "Xilinx Encryption Tool 2014"
+`pragma protect key_keyowner = "Xilinx", key_keyname= "xilinx_2014_03", key_method = "rsa"
+`pragma protect encoding = (enctype = "BASE64", line_length = 76, bytes = 256)
+`pragma protect key_block
+orJ54y8VGOo+LAa8wBYlcqen+z1Hx/IWal1i8WB4qrACdGSzhku4J6b2L26zHSHB++/uigfStgdX
+spEp1/zmczkhZ67IlXV7ADo9n7F/CeS4y2UZJ2Wl6pO+gZRcOR97zIafZAJSc+26n/4rsJoTOCpH
+80KPzK62uuhKP0NUCPb5GqZcVr33gN+5gFsAW0dXo4Rbx2tf1NN0cS+P/K13I1LN0iCyaVhYApG+
+hkiB+AIqyWlRs1qkQ4SzURuQT+G122/Nd8c0zizFZKs7p2YEeMaoqAsW2BLajcJrV8zx/TeO67Ph
+NMqtsIT4qBVyOrt49g0RtOiU/F19WGidN7TkZg==
 
-`timescale 1 ns / 1 ps
-
-	module timetestip_v1_0 #
-	(
-		// Users to add parameters here
-
-		// User parameters ends
-		// Do not modify the parameters beyond this line
-
-
-		// Parameters of Axi Slave Bus Interface S00_AXI
-		parameter integer C_S00_AXI_DATA_WIDTH	= 32,
-		parameter integer C_S00_AXI_ADDR_WIDTH	= 5
-	)
-	(
-		// Users to add ports here
-
-		// User ports ends
-		// Do not modify the ports beyond this line
-
-
-		// Ports of Axi Slave Bus Interface S00_AXI
-		input wire  s00_axi_aclk,
-		input wire  s00_axi_aresetn,
-		input wire [C_S00_AXI_ADDR_WIDTH-1 : 0] s00_axi_awaddr,
-		input wire [2 : 0] s00_axi_awprot,
-		input wire  s00_axi_awvalid,
-		output wire  s00_axi_awready,
-		input wire [C_S00_AXI_DATA_WIDTH-1 : 0] s00_axi_wdata,
-		input wire [(C_S00_AXI_DATA_WIDTH/8)-1 : 0] s00_axi_wstrb,
-		input wire  s00_axi_wvalid,
-		output wire  s00_axi_wready,
-		output wire [1 : 0] s00_axi_bresp,
-		output wire  s00_axi_bvalid,
-		input wire  s00_axi_bready,
-		input wire [C_S00_AXI_ADDR_WIDTH-1 : 0] s00_axi_araddr,
-		input wire [2 : 0] s00_axi_arprot,
-		input wire  s00_axi_arvalid,
-		output wire  s00_axi_arready,
-		output wire [C_S00_AXI_DATA_WIDTH-1 : 0] s00_axi_rdata,
-		output wire [1 : 0] s00_axi_rresp,
-		output wire  s00_axi_rvalid,
-		input wire  s00_axi_rready,
-		output wire status_good,
-		output wire event_irq,
-		output wire error_irq
-	);
-// Instantiation of Axi Bus Interface S00_AXI
-	timetestip_v1_0_S00_AXI # ( 
-		.C_S_AXI_DATA_WIDTH(C_S00_AXI_DATA_WIDTH),
-		.C_S_AXI_ADDR_WIDTH(C_S00_AXI_ADDR_WIDTH)
-	) timetestip_v1_0_S00_AXI_inst (
-		.S_AXI_ACLK(s00_axi_aclk),
-		.S_AXI_ARESETN(s00_axi_aresetn),
-		.S_AXI_AWADDR(s00_axi_awaddr),
-		.S_AXI_AWPROT(s00_axi_awprot),
-		.S_AXI_AWVALID(s00_axi_awvalid),
-		.S_AXI_AWREADY(s00_axi_awready),
-		.S_AXI_WDATA(s00_axi_wdata),
-		.S_AXI_WSTRB(s00_axi_wstrb),
-		.S_AXI_WVALID(s00_axi_wvalid),
-		.S_AXI_WREADY(s00_axi_wready),
-		.S_AXI_BRESP(s00_axi_bresp),
-		.S_AXI_BVALID(s00_axi_bvalid),
-		.S_AXI_BREADY(s00_axi_bready),
-		.S_AXI_ARADDR(s00_axi_araddr),
-		.S_AXI_ARPROT(s00_axi_arprot),
-		.S_AXI_ARVALID(s00_axi_arvalid),
-		.S_AXI_ARREADY(s00_axi_arready),
-		.S_AXI_RDATA(s00_axi_rdata),
-		.S_AXI_RRESP(s00_axi_rresp),
-		.S_AXI_RVALID(s00_axi_rvalid),
-		.S_AXI_RREADY(s00_axi_rready),
-		.STATUS_GOOD(status_good),
-		.EVENT_IRQ(event_irq),
-		.ERROR_IRQ(error_irq)
-	);
-
-	// Add user logic here
-
-	// User logic ends
-
-	endmodule
+`pragma protect data_method = "AES128-CBC"
+`pragma protect encoding = (enctype = "BASE64", line_length = 76, bytes = 2400)
+`pragma protect data_block
+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
+W4AB9+98
+`pragma protect end_protected

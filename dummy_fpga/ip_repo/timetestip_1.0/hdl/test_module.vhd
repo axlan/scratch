@@ -1,127 +1,97 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 05/02/2016 03:25:20 PM
--- Design Name: 
--- Module Name: test_module - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
+`protect begin_protected
+`protect version = 1
+`protect encrypt_agent = "XILINX"
+`protect encrypt_agent_info = "Xilinx Encryption Tool 2014"
+`protect key_keyowner = "Xilinx", key_keyname= "xilinx_2014_03", key_method = "rsa"
+`protect encoding = (enctype = "BASE64", line_length = 76, bytes = 256)
+`protect key_block
+h+zZXGiQ7ROoyhIzBAv4WjbD+EEnACG5GLmtplUDZrPgdTn8KhyKrQTvMOhvqNBhGtfYvcX241m/
+zIpPxSFBcz8/99eube2ygv9O/IGCCbzHYnc97jjmdTzCds3Dcwktjmt3c4Pf9GSPvmualXBmeTS/
+XE42nTS2Jbny5pYkC8ZaxTirwhhsNQFz84xZKoclwWWgk8l2CA5x//GBsFRjdUXm3qKPDjVI1rqu
+cy72KNgGi0sW1j/xCQYkVKaG1nEXFVrzpoT3W/CVjGUubP7rsWyQyjKNIKhV145c1AgUHLJNALpq
+ucMyM8YeXu4qVoAuvIOZrxS27fmVXgFjKJL+/Q==
 
-
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use ieee.numeric_std.all;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
-entity test_module is
-    Port ( clk_i : in STD_LOGIC;
-           reset_i : in STD_LOGIC;
-           num_channels_i : in STD_LOGIC_VECTOR (31 downto 0);
-           period_i : in STD_LOGIC_VECTOR (31 downto 0);
-           channel_spacing_i : in STD_LOGIC_VECTOR (31 downto 0);
-           channel_sel_i : in STD_LOGIC_VECTOR (31 downto 0);
-           clear_channel_i : in STD_LOGIC;
-           event_irq_o : out STD_LOGIC;
-           event_mask_o : out STD_LOGIC_VECTOR (31 downto 0);
-           error_irq_o : out STD_LOGIC;
-           error_mask_o : out STD_LOGIC_VECTOR (31 downto 0));
-end test_module;
-
-architecture Behavioral of test_module is
- -----------------------------------------------------------------------------
- --! @name Internal Registers
- -----------------------------------------------------------------------------
- --! @{
-
- signal num_channels : unsigned (31 downto 0);
- signal period : unsigned (31 downto 0);
- signal channel_spacing : unsigned (31 downto 0);
- 
- signal period_count : unsigned (31 downto 0);
- signal channel_count : unsigned (31 downto 0);
- signal cur_channel : unsigned (31 downto 0);
-  
- signal event_irq : STD_LOGIC;
- signal event_mask : STD_LOGIC_VECTOR (31 downto 0);
- signal error_irq : STD_LOGIC;
- signal error_mask : STD_LOGIC_VECTOR (31 downto 0);
-
-
- --! @}
-begin
-    -----------------------------------------------------------------------------
-    -- Outputs
-    -----------------------------------------------------------------------------
-    
-    event_irq_o <= event_irq;
-    event_mask_o  <= event_mask;
-    error_irq_o <= error_irq;
-    error_mask_o  <= error_mask;
-    
-     process (clk_i) is
-     begin
-        if  rising_edge(clk_i) then
-            if(reset_i = '1') then
-                period_count <= to_unsigned(1, 32);
-                channel_count <= to_unsigned(1, 32);
-                cur_channel <= to_unsigned(0, 32);
-                
-                event_irq <= '0';
-                event_mask <= std_logic_vector(to_unsigned(0, 32));
-                error_irq <= '0';
-                error_mask <=  std_logic_vector(to_unsigned(0, 32));
-                
-                if(unsigned(num_channels_i) < 32) then
-                    num_channels <= unsigned(num_channels_i);
-                else
-                    num_channels <= to_unsigned(32, 32);
-                end if;
-                period <= unsigned(period_i);
-                channel_spacing <= unsigned(channel_spacing_i);
-            else
-                event_irq <= '0';
-                error_irq <= '0';
-                period_count <= period_count + 1;
-                channel_count <= channel_count + 1;
-                if(period_count = period) then
-                    channel_count <= to_unsigned(1, 32);
-                    period_count <= to_unsigned(1, 32);
-                    cur_channel <= to_unsigned(0, 32);
-                else
-                    if(cur_channel < num_channels and channel_count = channel_spacing) then
-                        channel_count <= to_unsigned(1, 32);
-                        cur_channel <= cur_channel + 1;
-                        event_mask(to_integer(cur_channel)) <= '1';
-                        if(event_mask(to_integer(cur_channel)) = '1') then
-                            error_mask(to_integer(cur_channel)) <= '1';
-                            error_irq <= '1';
-                        end if;
-                        event_irq <= '1';
-                    end if;
-                end if;
-                if(clear_channel_i = '1') then
-                    event_mask(to_integer(unsigned(channel_sel_i))) <= '0';
-                end if;
-            end if;
-        end if;
-     end process;
-end Behavioral;
+`protect data_method = "AES128-CBC"
+`protect encoding = (enctype = "BASE64", line_length = 76, bytes = 4544)
+`protect data_block
+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
+`protect end_protected

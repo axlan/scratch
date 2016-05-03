@@ -1,442 +1,295 @@
+`pragma protect begin_protected
+`pragma protect version = 1
+`pragma protect encrypt_agent = "XILINX"
+`pragma protect encrypt_agent_info = "Xilinx Encryption Tool 2014"
+`pragma protect key_keyowner = "Xilinx", key_keyname= "xilinx_2014_03", key_method = "rsa"
+`pragma protect encoding = (enctype = "BASE64", line_length = 76, bytes = 256)
+`pragma protect key_block
+lSS1AqagAintW3hPHzOC5gVFyCcpRAl3CKiScCvvaeReWWI34IoWNc443jZVyAA6XqltleS4cMX/
+tHmfeye4s/WEhV1LNYkOFhhckO02pmrBL7uq+bFDIb9NGAYvko4jp9npjX9RaJh03xxAd7CEH3Hn
+603ZlGNskeau7DC1baQxnE0mSpwiLx0AgxCRvUlmuzK2RX3Wt5tZK4nDwn7FJ3wGbX2ar73SlSAa
+ffD86eGf433ZkDZssgHP3uVVdOXqKThwgObjSxVwLefn3UDmyLbacKrtG3nkCs54O+7Ap1iaZNyu
+jj1/nPE6Q8eyzKteXAJ+h0pcb2qKHPqHX2iBjA==
 
-`timescale 1 ns / 1 ps
-
-	module timetestip_v1_0_S00_AXI #
-	(
-		// Users to add parameters here
-
-		// User parameters ends
-		// Do not modify the parameters beyond this line
-
-		// Width of S_AXI data bus
-		parameter integer C_S_AXI_DATA_WIDTH	= 32,
-		// Width of S_AXI address bus
-		parameter integer C_S_AXI_ADDR_WIDTH	= 5
-	)
-	(
-		// Users to add ports here
-
-		// User ports ends
-		// Do not modify the ports beyond this line
-
-		// Global Clock Signal
-		input wire  S_AXI_ACLK,
-		// Global Reset Signal. This Signal is Active LOW
-		input wire  S_AXI_ARESETN,
-		// Write address (issued by master, acceped by Slave)
-		input wire [C_S_AXI_ADDR_WIDTH-1 : 0] S_AXI_AWADDR,
-		// Write channel Protection type. This signal indicates the
-    		// privilege and security level of the transaction, and whether
-    		// the transaction is a data access or an instruction access.
-		input wire [2 : 0] S_AXI_AWPROT,
-		// Write address valid. This signal indicates that the master signaling
-    		// valid write address and control information.
-		input wire  S_AXI_AWVALID,
-		// Write address ready. This signal indicates that the slave is ready
-    		// to accept an address and associated control signals.
-		output wire  S_AXI_AWREADY,
-		// Write data (issued by master, acceped by Slave) 
-		input wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_WDATA,
-		// Write strobes. This signal indicates which byte lanes hold
-    		// valid data. There is one write strobe bit for each eight
-    		// bits of the write data bus.    
-		input wire [(C_S_AXI_DATA_WIDTH/8)-1 : 0] S_AXI_WSTRB,
-		// Write valid. This signal indicates that valid write
-    		// data and strobes are available.
-		input wire  S_AXI_WVALID,
-		// Write ready. This signal indicates that the slave
-    		// can accept the write data.
-		output wire  S_AXI_WREADY,
-		// Write response. This signal indicates the status
-    		// of the write transaction.
-		output wire [1 : 0] S_AXI_BRESP,
-		// Write response valid. This signal indicates that the channel
-    		// is signaling a valid write response.
-		output wire  S_AXI_BVALID,
-		// Response ready. This signal indicates that the master
-    		// can accept a write response.
-		input wire  S_AXI_BREADY,
-		// Read address (issued by master, acceped by Slave)
-		input wire [C_S_AXI_ADDR_WIDTH-1 : 0] S_AXI_ARADDR,
-		// Protection type. This signal indicates the privilege
-    		// and security level of the transaction, and whether the
-    		// transaction is a data access or an instruction access.
-		input wire [2 : 0] S_AXI_ARPROT,
-		// Read address valid. This signal indicates that the channel
-    		// is signaling valid read address and control information.
-		input wire  S_AXI_ARVALID,
-		// Read address ready. This signal indicates that the slave is
-    		// ready to accept an address and associated control signals.
-		output wire  S_AXI_ARREADY,
-		// Read data (issued by slave)
-		output wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
-		// Read response. This signal indicates the status of the
-    		// read transfer.
-		output wire [1 : 0] S_AXI_RRESP,
-		// Read valid. This signal indicates that the channel is
-    		// signaling the required read data.
-		output wire  S_AXI_RVALID,
-		// Read ready. This signal indicates that the master can
-    		// accept the read data and response information.
-		input wire  S_AXI_RREADY,
-		
-		output wire STATUS_GOOD,
-        output wire EVENT_IRQ,
-        output wire ERROR_IRQ
-	);
-
-	// AXI4LITE signals
-	reg [C_S_AXI_ADDR_WIDTH-1 : 0] 	axi_awaddr;
-	reg  	axi_awready;
-	reg  	axi_wready;
-	reg [1 : 0] 	axi_bresp;
-	reg  	axi_bvalid;
-	reg [C_S_AXI_ADDR_WIDTH-1 : 0] 	axi_araddr;
-	reg  	axi_arready;
-	reg [C_S_AXI_DATA_WIDTH-1 : 0] 	axi_rdata;
-	reg [1 : 0] 	axi_rresp;
-	reg  	axi_rvalid;
-
-	// Example-specific design signals
-	// local parameter for addressing 32 bit / 64 bit C_S_AXI_DATA_WIDTH
-	// ADDR_LSB is used for addressing 32/64 bit registers/memories
-	// ADDR_LSB = 2 for 32 bits (n downto 2)
-	// ADDR_LSB = 3 for 64 bits (n downto 3)
-	localparam integer ADDR_LSB = (C_S_AXI_DATA_WIDTH/32) + 1;
-	localparam integer OPT_MEM_ADDR_BITS = 2;
-	//----------------------------------------------
-	//-- Signals for user logic register space example
-	//------------------------------------------------
-	//-- Number of Slave Registers 8
-	reg [C_S_AXI_DATA_WIDTH-1:0]	reset_reg;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	num_ch_reg;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	period_reg;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	ch_spacing_reg;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	clear_ch_reg;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	ch_sel_reg;
-	wire [C_S_AXI_DATA_WIDTH-1:0]	event_mask_ro_reg;
-	wire [C_S_AXI_DATA_WIDTH-1:0]	error_mask_ro_reg;
-	wire	 slv_reg_rden;
-	wire	 slv_reg_wren;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	 reg_data_out;
-	integer	 byte_index;
-
-	// I/O Connections assignments
-
-	assign S_AXI_AWREADY	= axi_awready;
-	assign S_AXI_WREADY	= axi_wready;
-	assign S_AXI_BRESP	= axi_bresp;
-	assign S_AXI_BVALID	= axi_bvalid;
-	assign S_AXI_ARREADY	= axi_arready;
-	assign S_AXI_RDATA	= axi_rdata;
-	assign S_AXI_RRESP	= axi_rresp;
-	assign S_AXI_RVALID	= axi_rvalid;
-	// Implement axi_awready generation
-	// axi_awready is asserted for one S_AXI_ACLK clock cycle when both
-	// S_AXI_AWVALID and S_AXI_WVALID are asserted. axi_awready is
-	// de-asserted when reset is low.
-
-	always @( posedge S_AXI_ACLK )
-	begin
-	  if ( S_AXI_ARESETN == 1'b0 )
-	    begin
-	      axi_awready <= 1'b0;
-	    end 
-	  else
-	    begin    
-	      if (~axi_awready && S_AXI_AWVALID && S_AXI_WVALID)
-	        begin
-	          // slave is ready to accept write address when 
-	          // there is a valid write address and write data
-	          // on the write address and data bus. This design 
-	          // expects no outstanding transactions. 
-	          axi_awready <= 1'b1;
-	        end
-	      else           
-	        begin
-	          axi_awready <= 1'b0;
-	        end
-	    end 
-	end       
-
-	// Implement axi_awaddr latching
-	// This process is used to latch the address when both 
-	// S_AXI_AWVALID and S_AXI_WVALID are valid. 
-
-	always @( posedge S_AXI_ACLK )
-	begin
-	  if ( S_AXI_ARESETN == 1'b0 )
-	    begin
-	      axi_awaddr <= 0;
-	    end 
-	  else
-	    begin    
-	      if (~axi_awready && S_AXI_AWVALID && S_AXI_WVALID)
-	        begin
-	          // Write Address latching 
-	          axi_awaddr <= S_AXI_AWADDR;
-	        end
-	    end 
-	end       
-
-	// Implement axi_wready generation
-	// axi_wready is asserted for one S_AXI_ACLK clock cycle when both
-	// S_AXI_AWVALID and S_AXI_WVALID are asserted. axi_wready is 
-	// de-asserted when reset is low. 
-
-	always @( posedge S_AXI_ACLK )
-	begin
-	  if ( S_AXI_ARESETN == 1'b0 )
-	    begin
-	      axi_wready <= 1'b0;
-	    end 
-	  else
-	    begin    
-	      if (~axi_wready && S_AXI_WVALID && S_AXI_AWVALID)
-	        begin
-	          // slave is ready to accept write data when 
-	          // there is a valid write address and write data
-	          // on the write address and data bus. This design 
-	          // expects no outstanding transactions. 
-	          axi_wready <= 1'b1;
-	        end
-	      else
-	        begin
-	          axi_wready <= 1'b0;
-	        end
-	    end 
-	end       
-
-	// Implement memory mapped register select and write logic generation
-	// The write data is accepted and written to memory mapped registers when
-	// axi_awready, S_AXI_WVALID, axi_wready and S_AXI_WVALID are asserted. Write strobes are used to
-	// select byte enables of slave registers while writing.
-	// These registers are cleared when reset (active low) is applied.
-	// Slave register write enable is asserted when valid address and data are available
-	// and the slave is ready to accept the write address and write data.
-	assign slv_reg_wren = axi_wready && S_AXI_WVALID && axi_awready && S_AXI_AWVALID;
-
-	always @( posedge S_AXI_ACLK )
-	begin
-	  if ( S_AXI_ARESETN == 1'b0 )
-	    begin
-	      reset_reg <= 0;
-	      num_ch_reg <= 0;
-	      period_reg <= 0;
-	      ch_spacing_reg <= 0;
-	      clear_ch_reg <= 0;
-	      ch_sel_reg <= 0;
-	    end 
-	  else begin
-	    if (slv_reg_wren)
-	      begin
-	        case ( axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
-	          3'h0:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-	                // Respective byte enables are asserted as per write strobes 
-	                // Slave register 0
-	                reset_reg[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          3'h1:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-	                // Respective byte enables are asserted as per write strobes 
-	                // Slave register 1
-	                num_ch_reg[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          3'h2:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-	                // Respective byte enables are asserted as per write strobes 
-	                // Slave register 2
-	                period_reg[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          3'h3:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-	                // Respective byte enables are asserted as per write strobes 
-	                // Slave register 3
-	                ch_spacing_reg[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          3'h4:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-	                // Respective byte enables are asserted as per write strobes 
-	                // Slave register 4
-	                clear_ch_reg[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          3'h5:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-	                // Respective byte enables are asserted as per write strobes 
-	                // Slave register 5
-	                ch_sel_reg[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          default : begin
-	                      reset_reg <= reset_reg;
-	                      num_ch_reg <= num_ch_reg;
-	                      period_reg <= period_reg;
-	                      ch_spacing_reg <= ch_spacing_reg;
-	                      clear_ch_reg <= clear_ch_reg;
-	                      ch_sel_reg <= ch_sel_reg;
-	                    end
-	        endcase
-	      end
-	  end
-	end    
-
-	// Implement write response logic generation
-	// The write response and response valid signals are asserted by the slave 
-	// when axi_wready, S_AXI_WVALID, axi_wready and S_AXI_WVALID are asserted.  
-	// This marks the acceptance of address and indicates the status of 
-	// write transaction.
-
-	always @( posedge S_AXI_ACLK )
-	begin
-	  if ( S_AXI_ARESETN == 1'b0 )
-	    begin
-	      axi_bvalid  <= 0;
-	      axi_bresp   <= 2'b0;
-	    end 
-	  else
-	    begin    
-	      if (axi_awready && S_AXI_AWVALID && ~axi_bvalid && axi_wready && S_AXI_WVALID)
-	        begin
-	          // indicates a valid write response is available
-	          axi_bvalid <= 1'b1;
-	          axi_bresp  <= 2'b0; // 'OKAY' response 
-	        end                   // work error responses in future
-	      else
-	        begin
-	          if (S_AXI_BREADY && axi_bvalid) 
-	            //check if bready is asserted while bvalid is high) 
-	            //(there is a possibility that bready is always asserted high)   
-	            begin
-	              axi_bvalid <= 1'b0; 
-	            end  
-	        end
-	    end
-	end   
-
-	// Implement axi_arready generation
-	// axi_arready is asserted for one S_AXI_ACLK clock cycle when
-	// S_AXI_ARVALID is asserted. axi_awready is 
-	// de-asserted when reset (active low) is asserted. 
-	// The read address is also latched when S_AXI_ARVALID is 
-	// asserted. axi_araddr is reset to zero on reset assertion.
-
-	always @( posedge S_AXI_ACLK )
-	begin
-	  if ( S_AXI_ARESETN == 1'b0 )
-	    begin
-	      axi_arready <= 1'b0;
-	      axi_araddr  <= 32'b0;
-	    end 
-	  else
-	    begin    
-	      if (~axi_arready && S_AXI_ARVALID)
-	        begin
-	          // indicates that the slave has acceped the valid read address
-	          axi_arready <= 1'b1;
-	          // Read address latching
-	          axi_araddr  <= S_AXI_ARADDR;
-	        end
-	      else
-	        begin
-	          axi_arready <= 1'b0;
-	        end
-	    end 
-	end       
-
-	// Implement axi_arvalid generation
-	// axi_rvalid is asserted for one S_AXI_ACLK clock cycle when both 
-	// S_AXI_ARVALID and axi_arready are asserted. The slave registers 
-	// data are available on the axi_rdata bus at this instance. The 
-	// assertion of axi_rvalid marks the validity of read data on the 
-	// bus and axi_rresp indicates the status of read transaction.axi_rvalid 
-	// is deasserted on reset (active low). axi_rresp and axi_rdata are 
-	// cleared to zero on reset (active low).  
-	always @( posedge S_AXI_ACLK )
-	begin
-	  if ( S_AXI_ARESETN == 1'b0 )
-	    begin
-	      axi_rvalid <= 0;
-	      axi_rresp  <= 0;
-	    end 
-	  else
-	    begin    
-	      if (axi_arready && S_AXI_ARVALID && ~axi_rvalid)
-	        begin
-	          // Valid read data is available at the read data bus
-	          axi_rvalid <= 1'b1;
-	          axi_rresp  <= 2'b0; // 'OKAY' response
-	        end   
-	      else if (axi_rvalid && S_AXI_RREADY)
-	        begin
-	          // Read data is accepted by the master
-	          axi_rvalid <= 1'b0;
-	        end                
-	    end
-	end    
-
-	// Implement memory mapped register select and read logic generation
-	// Slave register read enable is asserted when valid address is available
-	// and the slave is ready to accept the read address.
-	assign slv_reg_rden = axi_arready & S_AXI_ARVALID & ~axi_rvalid;
-	always @(*)
-	begin
-	      // Address decoding for reading registers
-	      case ( axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
-	        3'h0   : reg_data_out <= reset_reg;
-	        3'h1   : reg_data_out <= num_ch_reg;
-	        3'h2   : reg_data_out <= period_reg;
-	        3'h3   : reg_data_out <= ch_spacing_reg;
-	        3'h4   : reg_data_out <= clear_ch_reg;
-	        3'h5   : reg_data_out <= ch_sel_reg;
-	        3'h6   : reg_data_out <= event_mask_ro_reg;
-	        3'h7   : reg_data_out <= error_mask_ro_reg;
-	        default : reg_data_out <= 0;
-	      endcase
-	end
-
-	// Output register or memory read data
-	always @( posedge S_AXI_ACLK )
-	begin
-	  if ( S_AXI_ARESETN == 1'b0 )
-	    begin
-	      axi_rdata  <= 0;
-	    end 
-	  else
-	    begin    
-	      // When there is a valid read address (S_AXI_ARVALID) with 
-	      // acceptance of read address by the slave (axi_arready), 
-	      // output the read dada 
-	      if (slv_reg_rden)
-	        begin
-	          axi_rdata <= reg_data_out;     // register read data
-	        end   
-	    end
-	end    
-
-	// Add user logic here
-    test_module u1
-    (
-        .clk_i(S_AXI_ACLK),
-        .reset_i(reset_reg || !S_AXI_ARESETN),
-        .num_channels_i(num_ch_reg),
-        .period_i(period_reg),
-        .channel_spacing_i(ch_spacing_reg),
-        .channel_sel_i(ch_sel_reg),
-        .clear_channel_i(clear_ch_reg[0]),
-        .event_irq_o(EVENT_IRQ),
-        .event_mask_o(event_mask_ro_reg),
-        .error_irq_o(ERROR_IRQ),
-        .error_mask_o(error_mask_ro_reg)
-    );
-    
-    assign STATUS_GOOD = !(error_mask_ro_reg);
-    
-	// User logic ends
-
-	endmodule
+`pragma protect data_method = "AES128-CBC"
+`pragma protect encoding = (enctype = "BASE64", line_length = 76, bytes = 15824)
+`pragma protect data_block
+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
+`pragma protect end_protected
