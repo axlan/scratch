@@ -1,0 +1,1 @@
+vivado -mode batch -nojournal -nolog -notrace -source projgen.tcl
