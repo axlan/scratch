@@ -68,7 +68,8 @@ for searchDopplerBin in range(int(searchDopplerMin/searchDopplerStep),int(search
     for i in range(fftSize):
         a = searchFFT[i]
         b = simFFT[(i+sampleOffset)%fftSize]
-        val=(a.real*b.real + a.imag*b.imag) + 1j * (a.real * -b.imag + a.imag * b.real)
+        #val=(a.real*b.real + a.imag*b.imag) + 1j * (a.real * -b.imag + a.imag * b.real)
+        val= a * b.conj()
         result_fft.append(val)
      
     results = np.abs(np.fft.ifft(result_fft))
