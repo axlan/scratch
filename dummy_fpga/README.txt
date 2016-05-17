@@ -3,6 +3,7 @@ Timing Test FPGA IP
 Included Files:
   projgen.tcl - tcl script for generating example project file
   ip_repo/ - countains the IP block for testing
+  constraints/ - countains the xdc file NOTE: this was used to set the LED pin for the our setup and will need to be changed based on the hardware used
   unecrypted/ - countains unencrypted versions of the source files for reference
   timing_test.c - example software written to be compiled with the Xilinx SDK and run on the processor bare metal
 
